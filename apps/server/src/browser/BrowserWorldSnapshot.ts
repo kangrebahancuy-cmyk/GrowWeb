@@ -36,23 +36,23 @@ export async function getBrowserWorldSnapshot(
   }
 
   const tiles = blocks.map((block, index) => ({
-    x: index % width,
-    y: Math.floor(index / width),
+    x:             index % width,
+    y:             Math.floor(index / width),
     foregroundId: Number.isSafeInteger(block.fg) ? block.fg : 0,
     backgroundId: Number.isSafeInteger(block.bg) ? block.bg : 0,
-    flags: Number.isSafeInteger(block.flags) ? block.flags : 0,
+    flags:         Number.isSafeInteger(block.flags) ? block.flags : 0,
   }));
 
   const players = Array.from(base.cache.peers.values())
     .filter((peer) => peer.world === worldName)
     .map((peer) => ({
-      playerId: String(peer.userID),
+      playerId:   String(peer.userID),
       displayName: peer.displayName,
       worldName,
-      x: peer.x,
-      y: peer.y,
-      facing: peer.rotatedLeft ? "left" as const : "right" as const,
-      level: peer.level,
+      x:          peer.x ?? 0,
+      y:          peer.y ?? 0,
+      facing:     peer.rotatedLeft ? "left" as const : "right" as const,
+      level:      peer.level,
     }));
 
   return {
