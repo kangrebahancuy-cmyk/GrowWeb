@@ -63,3 +63,11 @@ Before coding the gateway, the next technical task is to inspect the exact `grow
 
 This is source-analysis progress only. No browser transport, browser renderer, or end-to-end browser login has been implemented or tested yet.
 
+## Transport library findings
+
+Inspection of the upstream `StileDevs/growtopia.js` source and `StileDevs/GrowProxy` confirms that the library is a native ENet transport, not a browser WebSocket protocol. Its native host exposes peer connect/send/disconnect operations, while GrowProxy relays packet buffers between two ENet peers and explicitly handles `OnSendToServer` handoff. That is a useful reference for native-client proxying, but it does not provide browser-side ENet or a ready-made WebSocket game protocol.
+
+This narrows the first implementation milestone: **do not create a generic WebSocket pipe and label it a game gateway**. The browser side needs a defined, versioned message envelope and the server needs an authenticated mapping from each browser session to the actual GrowServer player lifecycle. The current login code also chooses a game port from `config.web.ports`; a browser transport will need a deliberate policy for that handoff rather than assuming every login and gameplay packet remains on one socket.
+
+The source repository and protocol constraints have now been documented. No code-level gateway change has been made yet because the current code does not expose a transport-neutral session interface, and implementing a guessed bridge before defining that interface would risk bypassing authentication or breaking native clients.
+
