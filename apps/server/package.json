@@ -22,7 +22,7 @@
     "start": "nr start:bun || nr start:node",
     "start:bun": "nr bun dist/src/app.js",
     "start:node": "nr node dist/src/app.js",
-    "test:browser-protocol": "cross-env RUNTIME_ENV=node tsx --test scripts/browser-protocol.test.ts"
+    "test:browser-protocol": "cross-env RUNTIME_ENV=node tsx --test scripts/browser-protocol.test.ts scripts/browser-auth.test.ts"
   },
   "keywords": [],
   "author": "JadlionHD <jadlion.dev@gmail.com>",
