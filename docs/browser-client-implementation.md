@@ -28,7 +28,9 @@ Make the existing GrowServer game playable from a modern web browser for local W
 - Do not claim browser playability until the browser client has been tested against the real server.
 - Avoid changing the existing ENet path for native clients while the browser transport is developed.
 - Keep browser transport optional so a local server can still run in its existing configuration.
-- The current repository source has not yet been modified to add a functioning browser transport or game client. This document records the implementation boundary, not a completed feature.
+- The repository now has a server-side virtual-peer output bridge: authenticated browser accounts are assigned a server-allocated netID and `Peer.send` routes the existing server's outgoing packets to the owning WebSocket as base64 `game-packet` events. The native ENet path remains unchanged for peers without a registered browser transport.
+- After authentication, a browser can request a real existing world. The gateway creates a server-side `PeerData` record, calls the existing `Peer.enterWorld` / `World.enter` lifecycle, and routes resulting world/spawn packets through that browser transport. On socket close, it leaves the world, saves player data, releases the transport, and removes the virtual peer from the peer cache.
+- Browser chat is routed through the existing `Input` action handler, including existing command permission checks. The browser transport is now connected to real server lifecycle paths; it is not yet a complete playable browser client because the browser renderer/packet decoder and authoritative movement/tile-action adapter remain incomplete.
 
 ## Milestones
 
@@ -164,3 +166,12 @@ The gateway authenticates against the existing account database and does not kic
 Added `apps/server/src/browser/BrowserWorldSnapshot.ts`. After authenticating, a browser may send `{version:1,type:"world",name:"START"}`. The server checks the world exists in its existing cache/database before loading it, then serializes the actual cached/database map tiles and currently connected native players into a `world-snapshot` event. It validates world names, bounds map dimensions, and rejects inconsistent map data. This path does not create missing worlds and does not add the browser account to the ENet peer cache.
 
 This is a real-data read-only bridge, not yet an in-world browser player. Movement, punch/place/collect, and chat remain disabled. The remaining Stage 3 blocker is still a supported server-owned browser player transport (virtual ENet peer in a `growtopia.js` fork or a transport-neutral refactor), including real player identity/netID allocation, spawn/leave lifecycle, inventory and permission validation, action routing, world updates to other players, and persistence. The browser must not be marked `in-world` until those are implemented. Added a protocol test for valid/invalid world requests. The protocol test suite, server build, and lint passed in GitHub Actions on commit `bf21f1131a94299d495fd04b73310e8a6dc497f5`.
+
+
+## Virtual-peer transport implementation (2026-10-10)
+
+- `apps/server/src/browser/BrowserPeerTransportRegistry.ts` owns a mapping of server-allocated virtual netIDs to WebSocket send/disconnect callbacks.
+- `apps/server/src/core/Peer.ts` intercepts outgoing `Peer.send` only when a netID is registered as a browser virtual peer. Packets are serialized by the existing `growtopia.js` packet objects and delivered as base64 `game-packet` events. All ordinary ENet peers continue through `super.send`.
+- `apps/server/src/browser/BrowserGateway.ts` builds a browser peer record from the authenticated GrowServer player database row, enters real worlds through `Peer.enterWorld`, routes chat through `Input.execute`, and cleans up world membership/player persistence on disconnect.
+- Browser-originated movement and tile interactions remain deliberately disabled. The native `State` handler accepts client-provided coordinates, so exposing it directly to browsers before adding server-authoritative movement/collision validation would create an unsafe path. These controls must be implemented by a validated server-side action service before being enabled.
+- The current WebSocket protocol carries native packet bytes in base64; a browser packet decoder/renderer is still required to turn those packets into a playable visual client. The JSON `world-snapshot` event remains available for inspecting actual world data.
