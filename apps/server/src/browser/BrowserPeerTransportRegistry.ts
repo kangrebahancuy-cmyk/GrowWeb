@@ -1,5 +1,3 @@
-import type { WebSocket } from "ws";
-
 interface BrowserPeerTransport {
   send(packet: Buffer): void;
   disconnect(code?: number, reason?: string): void;
