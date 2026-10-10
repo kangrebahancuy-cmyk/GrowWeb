@@ -107,3 +107,14 @@ test("one session cannot claim two different accounts", () => {
   assert.equal(registry.getSessionForAccount("account-a"), "session-a");
   assert.equal(registry.getSessionForAccount("account-b"), undefined);
 });
+
+test("browser world requests normalize names and reject unsafe world names", () => {
+  assert.deepEqual(
+    parseBrowserClientMessage(JSON.stringify({ version: 1, type: "world", name: "start1" })),
+    { ok: true, message: { version: 1, type: "world", name: "START1" } },
+  );
+  assert.deepEqual(
+    parseBrowserClientMessage(JSON.stringify({ version: 1, type: "world", name: "../admin" })),
+    { ok: false, reason: "invalid_world_name" },
+  );
+});
