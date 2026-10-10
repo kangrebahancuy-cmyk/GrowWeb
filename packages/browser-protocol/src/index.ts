@@ -139,3 +139,12 @@ function BufferlessByteLength(value: string): number {
 export function serializeBrowserServerMessage(message: BrowserServerMessage): string {
   return JSON.stringify(message);
 }
+
+export type {
+  AuthenticatedBrowserGameSession,
+  BrowserPlayerSnapshot,
+  BrowserSessionProvider,
+  BrowserSessionState,
+  BrowserWorldSnapshot,
+  BrowserWorldTileSnapshot,
+} from "./session";
