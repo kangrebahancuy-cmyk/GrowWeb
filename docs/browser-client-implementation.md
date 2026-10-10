@@ -109,3 +109,18 @@ Added `packages/browser-protocol/src/session-registry.ts` and exported `BrowserS
 ## Local validation status
 
 No Windows machine or repository checkout is available to this change operation, so no `pnpm install`, TypeScript build, server start, browser handshake, or gameplay test has been run. The session registry should receive unit tests and a workspace type-check before being wired into the live server.
+
+
+## Progress update — existing-account authentication adapter
+
+Added `apps/server/src/browser/AccountAuthenticator.ts`. It looks up accounts through the existing `base.database.players.get()`, verifies the existing bcrypt hash, rejects invalid/wildcard-like usernames, and applies a conservative duplicate-login policy: if a native ENet peer already owns that account, browser login is rejected rather than kicking the native player. Successful browser authentication receives a server-generated session ID and an in-memory account lease. Passwords are not included in the returned account object.
+
+Added tests in `apps/server/scripts/browser-auth.test.ts` and `apps/server/scripts/browser-protocol.test.ts`, invoked by:
+
+```powershell
+pnpm --filter server test:browser-protocol
+```
+
+The GitHub Actions workflow is `.github/workflows/browser-protocol.yml`. It was corrected to use the pnpm version already declared by the repository. The tests and build still need a passing CI result before they can be considered verified.
+
+**Still not complete:** the authenticator is not wired to a WebSocket endpoint; the in-memory lease does not coordinate with other server processes or survive restarts; browser sessions are not native game peers; no world snapshot, movement, interaction, chat relay, renderer, or full Windows end-to-end test exists. In particular, do not expose this authenticator to the network until the WebSocket gateway adds origin checks, rate limiting, connection limits, and safe disconnect cleanup.
