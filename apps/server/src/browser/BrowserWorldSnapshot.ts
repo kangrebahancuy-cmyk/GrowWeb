@@ -49,10 +49,10 @@ export async function getBrowserWorldSnapshot(
       playerId:    String(peer.userID),
       displayName: peer.displayName,
       worldName:   worldName,
-      x:          peer.x ?? 0,
-      y:          peer.y ?? 0,
-      facing:     peer.rotatedLeft ? "left" as const : "right" as const,
-      level:      peer.level,
+      x:           peer.x ?? 0,
+      y:           peer.y ?? 0,
+      facing:      peer.rotatedLeft ? "left" as const : "right" as const,
+      level:       peer.level,
     }));
 
   return {
