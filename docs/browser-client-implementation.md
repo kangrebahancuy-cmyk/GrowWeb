@@ -98,3 +98,14 @@ This is an interface contract only. No implementation currently authenticates ag
 ## Progress update — login envelope
 
 Added a validated `login` message to the shared protocol with bounded username/password fields. This only validates message shape; the server must still verify credentials against the existing account database, apply login throttling, and bind the authenticated identity to a server-owned session. Never log or echo passwords. The gateway and real gameplay integration are still not implemented.
+
+
+## Progress update — single-process browser session lease
+
+Added `packages/browser-protocol/src/session-registry.ts` and exported `BrowserSessionRegistry` from the protocol package. It provides a small in-memory claim/release primitive so one normalized server-side account key cannot be claimed by two browser sessions in the same process. Release is bound to the owning session ID, preventing an old connection from releasing a newer connection's claim.
+
+**Important limitations:** this registry is not yet called by the GrowServer login flow; it does not verify credentials, coordinate with native ENet clients, survive restarts, or coordinate multiple server processes. It must only be claimed after database authentication. The production integration still needs an explicit browser-vs-native duplicate-login policy and cleanup on disconnect/timeout.
+
+## Local validation status
+
+No Windows machine or repository checkout is available to this change operation, so no `pnpm install`, TypeScript build, server start, browser handshake, or gameplay test has been run. The session registry should receive unit tests and a workspace type-check before being wired into the live server.
