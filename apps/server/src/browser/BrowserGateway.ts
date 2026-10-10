@@ -17,7 +17,11 @@ export class BrowserGateway {
     const host = process.env.BROWSER_GATEWAY_HOST ?? "127.0.0.1";
     const origins = (process.env.BROWSER_ALLOWED_ORIGINS ?? "http://localhost:3000,http://127.0.0.1:3000").split(",").map((v) => v.trim());
     this.server = new WebSocketServer({
-      host, port, path: "/browser", maxPayload: 16 * 1024, perMessageDeflate: false,
+      host:              host,
+      port:              port,
+      path:              "/browser",
+      maxPayload:        16 * 1024,
+      perMessageDeflate: false,
       verifyClient: (info, done) => {
         if (!info.origin && process.env.BROWSER_ALLOW_NO_ORIGIN !== "true") return done(false, 403, "Origin required");
         if (info.origin && !origins.includes(info.origin)) return done(false, 403, "Origin not allowed");
