@@ -49,8 +49,8 @@ export class BrowserGateway {
             if (!snapshot) return this.fail(socket, "world_not_found_or_invalid", "That world does not exist or its map data is invalid.");
             this.send(socket, {
               version: 1,
-              type: "event",
-              name: "world-snapshot",
+              type:    "event",
+              name:    "world-snapshot",
               payload: { snapshot },
             });
           } catch (error) {
