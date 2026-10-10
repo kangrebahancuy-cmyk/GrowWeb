@@ -6,6 +6,8 @@ on:
     paths:
       - "packages/browser-protocol/**"
       - "apps/server/scripts/browser-protocol.test.ts"
+      - "apps/server/scripts/browser-auth.test.ts"
+      - "apps/server/src/browser/**"
       - "apps/server/package.json"
       - "pnpm-lock.yaml"
       - ".github/workflows/browser-protocol.yml"
