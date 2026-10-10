@@ -89,21 +89,6 @@ or you want to run the database & redis only (this were for development only) th
 docker compose up -d db redis
 ```
 
-## Browser-playable web client
-
-A standalone 2D browser sandbox prototype is available in [`apps/web`](./apps/web). It supports movement, jumping, breaking and placing blocks, and touch controls.
-
-To run it locally on Windows, install Node.js 20+ and run:
-
-```powershell
-cd apps/web
-node server.cjs
-```
-
-Then open http://localhost:4173. For a static Vercel deployment, set the project's Root Directory to `apps/web`; no build command or environment variables are required.
-
-**Important:** this is currently a local single-player prototype. It is not yet connected to the GrowServer ENet backend. Browser multiplayer needs a secure WebSocket gateway/adapter on the server side; the browser cannot connect directly to ENet.
-
 ## Contributing
 
 Any contributions are welcome.
