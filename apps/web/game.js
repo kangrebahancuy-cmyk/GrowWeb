@@ -25,7 +25,7 @@
     toastTimer = setTimeout(() => toastEl.classList.add("hidden"), 2600);
   }
   function makeWorld() {
-    world = Array.from({ length: WORLD_H }, () => Array(WORLD_W).fill(0));
+    world = Array.from({ length: WORLD_H }, () => Array(WORLD_W).fill(-1));
     for (let x = 0; x < WORLD_W; x++) {
       const ground = Math.floor(28 + Math.sin(x * .13) * 2 + Math.sin(x * .047) * 3);
       for (let y = ground; y < WORLD_H; y++) {
@@ -33,7 +33,7 @@
       }
       if (x % 13 === 4 && x > 3 && x < WORLD_W - 3) {
         for (let y = ground - 1; y > ground - 4; y--) world[y][x] = 3;
-        for (let ox = -2; ox <= 2; ox++) for (let oy = -5; oy <= -3; oy--) {
+        for (let ox = -2; ox <= 2; ox++) for (let oy = -5; oy <= -3; oy++) {
           const tx = x + ox, ty = ground + oy;
           if (tx >= 0 && tx < WORLD_W && ty >= 0 && ty < WORLD_H && Math.abs(ox) + Math.abs(oy + 4) < 4) world[ty][tx] = 0;
         }
@@ -49,7 +49,7 @@
   }
   function solidAt(px, py) {
     const tx = Math.floor(px / TILE), ty = Math.floor(py / TILE);
-    return tx < 0 || tx >= WORLD_W || ty >= WORLD_H || (ty >= 0 && world[ty][tx] !== 0);
+    return tx < 0 || tx >= WORLD_W || ty >= WORLD_H || (ty >= 0 && world[ty][tx] >= 0);
   }
   function movePlayer(dt) {
     const left = keys.has("ArrowLeft") || keys.has("a") || touch.left;
@@ -124,7 +124,7 @@
     cameraY = clamp(player.y + player.h / 2 - viewH * .53, 0, WORLD_H * TILE - viewH);
     const x0 = Math.max(0, Math.floor(cameraX / TILE)), x1 = Math.min(WORLD_W - 1, Math.ceil((cameraX + viewW) / TILE));
     const y0 = Math.max(0, Math.floor(cameraY / TILE)), y1 = Math.min(WORLD_H - 1, Math.ceil((cameraY + viewH) / TILE));
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (world[y][x] !== 0) drawTile(world[y][x], Math.floor(x * TILE - cameraX), Math.floor(y * TILE - cameraY));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (world[y][x] >= 0) drawTile(world[y][x], Math.floor(x * TILE - cameraX), Math.floor(y * TILE - cameraY));
     drawPlayer();
     coordsEl.textContent = `X ${Math.floor(player.x / TILE)} · Y ${Math.floor(player.y / TILE)}`;
   }
@@ -142,14 +142,14 @@
     if (p.x < 0 || p.x >= WORLD_W || p.y < 0 || p.y >= WORLD_H) return;
     const distance = Math.hypot((p.x + .5) * TILE - (player.x + player.w / 2), (p.y + .5) * TILE - (player.y + player.h / 2));
     if (distance > TILE * 6) { notify("That block is too far away."); return; }
-    if (event.button === 2 || event.pointerType === "touch" && world[p.y][p.x] === 0) {
-      if (world[p.y][p.x] !== 0) { notify("That tile is occupied."); return; }
+    if (event.button === 2 || event.pointerType === "touch" && world[p.y][p.x] === -1) {
+      if (world[p.y][p.x] >= 0) { notify("That tile is occupied."); return; }
       const bx = p.x * TILE, by = p.y * TILE;
       if (bx < player.x + player.w && bx + TILE > player.x && by < player.y + player.h && by + TILE > player.y) { notify("You cannot place a block inside yourself."); return; }
       world[p.y][p.x] = selected; notify(`${blocks[selected].name} placed.`);
     } else {
       if (world[p.y][p.x] === 0) { notify("Choose a block and tap an empty tile to build."); return; }
-      world[p.y][p.x] = 0; notify("Block broken.");
+      world[p.y][p.x] = -1; notify("Block broken.");
     }
   }
   function selectSlot(index) {
