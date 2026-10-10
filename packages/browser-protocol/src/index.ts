@@ -172,3 +172,6 @@ export type {
   BrowserWorldSnapshot,
   BrowserWorldTileSnapshot,
 } from "./session";
+
+export { BrowserSessionRegistry } from "./session-registry";
+export type { SessionClaim } from "./session-registry";
