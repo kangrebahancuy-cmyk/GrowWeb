@@ -150,3 +150,10 @@ Option 1 preserves the existing packet/action lifecycle more directly but requir
 ### CI follow-up
 
 The browser protocol/authentication tests have passed in GitHub Actions on commit 56f8f78c337d3f3b0b48a9d2b75138b6f0a18d86. The full repository build was still failing at that point due to workspace/script issues plus TypeScript/lint problems around the new tests; those build issues are being addressed separately. No Windows end-to-end test has been performed.
+
+
+## WebSocket gateway update (2026-10-10)
+
+Added `apps/server/src/browser/BrowserGateway.ts` and wired it into `Base` startup/shutdown. It listens on `ws://127.0.0.1:8081/browser` by default, uses the `ws` library, validates the browser protocol envelope, limits payload size and concurrent connections, checks allowed origins, limits login attempts per IP, and releases account leases on disconnect. Configure `BROWSER_GATEWAY_HOST`, `BROWSER_GATEWAY_PORT`, `BROWSER_ALLOWED_ORIGINS` (comma-separated exact origins), and optionally `BROWSER_ALLOW_NO_ORIGIN=true` for local non-browser testing.
+
+The gateway authenticates against the existing account database and does not kick native ENet sessions. A successful login is only an authenticated account; movement, interaction and chat return `game_session_unavailable` because no real browser game session is attached yet. The current `growtopia.js` API does not expose a supported virtual-peer registration API. Stage 3 therefore still requires a virtual-peer transport in a library fork or a transport-neutral refactor of player/world/action services. Do not call this playable yet. Use TLS/WSS behind a strict origin allowlist before remote access.
