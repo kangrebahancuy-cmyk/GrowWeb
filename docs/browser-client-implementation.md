@@ -33,7 +33,8 @@ Make the existing GrowServer game playable from a modern web browser for local W
 ## Milestones
 
 - [x] Define the initial versioned browser message envelope and validation package (`packages/browser-protocol`).
-- [ ] Define a transport-neutral session boundary around existing player/world operations.
+- [x] Define the transport-neutral session contract (`packages/browser-protocol/src/session.ts`).
+- [ ] Implement the contract against the existing authenticated GrowServer player/world lifecycle.
 - [ ] Add a WebSocket transport with strict message validation and lifecycle handling.
 - [ ] Connect browser sessions to existing authentication and player state without bypassing server rules.
 - [ ] Build a canvas/WebGL client that consumes real world and player state.
@@ -85,3 +86,10 @@ Implemented on `main`:
 The protocol package defines a version-1 JSON envelope and rejects malformed/oversized messages, invalid chat lengths, invalid movement directions/sequences, out-of-range tile coordinates, unsupported interactions, and invalid item IDs. The validator is deliberately transport-only and does not mutate player/world state.
 
 **Not implemented yet:** WebSocket server, authenticated session mapping, login/refresh-token handoff, actual game-state serialization, browser renderer/assets, or end-to-end tests. Do not use this package as evidence that the game is already playable in a browser.
+
+
+## Progress update — session contract
+
+Added `packages/browser-protocol/src/session.ts` and exported its types from the package entry point. The contract describes an authenticated server-owned session, player/world snapshots, movement, interactions, chat, and close lifecycle. The browser does not provide its own player ID.
+
+This is an interface contract only. No implementation currently authenticates against the database, creates/owns a real ENet-backed player session, serializes the real world, or applies game actions. The WebSocket gateway remains pending; the next implementation must be wired to the existing server internals rather than simulate them.
