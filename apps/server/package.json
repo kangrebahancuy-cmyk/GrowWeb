@@ -21,7 +21,8 @@
     "install:server": "nr setup && nr build && nr push && nr seed && nr iteminfo",
     "start": "nr start:bun || nr start:node",
     "start:bun": "nr bun dist/src/app.js",
-    "start:node": "nr node dist/src/app.js"
+    "start:node": "nr node dist/src/app.js",
+    "test:browser-protocol": "cross-env RUNTIME_ENV=node tsx --test scripts/browser-protocol.test.ts"
   },
   "keywords": [],
   "author": "JadlionHD <jadlion.dev@gmail.com>",
@@ -47,7 +48,8 @@
     "mwparser": "^1.3.3",
     "nanoid": "5.1.5",
     "rimraf": "^6.1.0",
-    "tsx": "^4.20.5"
+    "tsx": "^4.20.5",
+    "@growserver/browser-protocol": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
