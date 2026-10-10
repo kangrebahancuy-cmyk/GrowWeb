@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   BrowserSessionRegistry,
   parseBrowserClientMessage,
-} from "@growserver/browser-protocol";
+} from "../../../packages/browser-protocol/src/index.ts";
 
 test("browser protocol rejects malformed and oversized input", () => {
   assert.deepEqual(parseBrowserClientMessage("{"), {
