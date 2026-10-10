@@ -66,10 +66,10 @@ export class BrowserAccountAuthenticator {
 
     return {
       sessionId,
-      accountId: player.id,
-      username: player.name,
+      accountId:  player.id,
+      username:   player.name,
       displayName: player.display_name,
-      level: player.level ?? 0,
+      level:      player.level ?? 0,
     };
   }
 
