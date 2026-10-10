@@ -83,7 +83,7 @@ Implemented on `main`:
 - `packages/browser-protocol/src/index.ts`
 - `packages/browser-protocol/README.md`
 
-The protocol package defines a version-1 JSON envelope and rejects malformed/oversized messages, invalid chat lengths, invalid movement directions/sequences, out-of-range tile coordinates, unsupported interactions, and invalid item IDs. The validator is deliberately transport-only and does not mutate player/world state.
+The protocol package defines a version-1 JSON envelope and rejects malformed/oversized messages, invalid login credential shapes, invalid chat lengths, invalid movement directions/sequences, out-of-range tile coordinates, unsupported interactions, and invalid item IDs. A `login` message now exists in the contract so a future gateway has a defined credential envelope; it does not authenticate credentials itself. Use HTTPS/WSS outside localhost so credentials are protected in transit. The validator is deliberately transport-only and does not mutate player/world state.
 
 **Not implemented yet:** WebSocket server, authenticated session mapping, login/refresh-token handoff, actual game-state serialization, browser renderer/assets, or end-to-end tests. Do not use this package as evidence that the game is already playable in a browser.
 
@@ -93,3 +93,8 @@ The protocol package defines a version-1 JSON envelope and rejects malformed/ove
 Added `packages/browser-protocol/src/session.ts` and exported its types from the package entry point. The contract describes an authenticated server-owned session, player/world snapshots, movement, interactions, chat, and close lifecycle. The browser does not provide its own player ID.
 
 This is an interface contract only. No implementation currently authenticates against the database, creates/owns a real ENet-backed player session, serializes the real world, or applies game actions. The WebSocket gateway remains pending; the next implementation must be wired to the existing server internals rather than simulate them.
+
+
+## Progress update — login envelope
+
+Added a validated `login` message to the shared protocol with bounded username/password fields. This only validates message shape; the server must still verify credentials against the existing account database, apply login throttling, and bind the authenticated identity to a server-owned session. Never log or echo passwords. The gateway and real gameplay integration are still not implemented.
