@@ -32,6 +32,7 @@ Make the existing GrowServer game playable from a modern web browser for local W
 
 ## Milestones
 
+- [x] Define the initial versioned browser message envelope and validation package (`packages/browser-protocol`).
 - [ ] Define a transport-neutral session boundary around existing player/world operations.
 - [ ] Add a WebSocket transport with strict message validation and lifecycle handling.
 - [ ] Connect browser sessions to existing authentication and player state without bypassing server rules.
@@ -69,5 +70,18 @@ Inspection of the upstream `StileDevs/growtopia.js` source and `StileDevs/GrowPr
 
 This narrows the first implementation milestone: **do not create a generic WebSocket pipe and label it a game gateway**. The browser side needs a defined, versioned message envelope and the server needs an authenticated mapping from each browser session to the actual GrowServer player lifecycle. The current login code also chooses a game port from `config.web.ports`; a browser transport will need a deliberate policy for that handoff rather than assuming every login and gameplay packet remains on one socket.
 
-The source repository and protocol constraints have now been documented. No code-level gateway change has been made yet because the current code does not expose a transport-neutral session interface, and implementing a guessed bridge before defining that interface would risk bypassing authentication or breaking native clients.
+The source repository and protocol constraints have been documented. The first code foundation now exists at `packages/browser-protocol`: versioned message types and validation for hello/ping/chat/input/interact messages. This package is only a contract; it is not a WebSocket server, does not authenticate users, does not create a real GrowServer peer, and does not yet route messages into game logic. The next blocker remains a transport-neutral session interface that maps a browser connection to an authenticated real player without guessing a netID or breaking native ENet clients.
 
+
+
+## Progress update — browser protocol foundation
+
+Implemented on `main`:
+
+- `packages/browser-protocol/package.json`
+- `packages/browser-protocol/src/index.ts`
+- `packages/browser-protocol/README.md`
+
+The protocol package defines a version-1 JSON envelope and rejects malformed/oversized messages, invalid chat lengths, invalid movement directions/sequences, out-of-range tile coordinates, unsupported interactions, and invalid item IDs. The validator is deliberately transport-only and does not mutate player/world state.
+
+**Not implemented yet:** WebSocket server, authenticated session mapping, login/refresh-token handoff, actual game-state serialization, browser renderer/assets, or end-to-end tests. Do not use this package as evidence that the game is already playable in a browser.
