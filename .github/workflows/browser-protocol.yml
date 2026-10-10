@@ -1,0 +1,34 @@
+name: Browser protocol checks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/browser-protocol/**"
+      - "apps/server/scripts/browser-protocol.test.ts"
+      - "apps/server/package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/browser-protocol.yml"
+  pull_request:
+    paths:
+      - "packages/browser-protocol/**"
+      - "apps/server/scripts/browser-protocol.test.ts"
+      - "apps/server/package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/browser-protocol.yml"
+  workflow_dispatch:
+
+jobs:
+  protocol-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter server test:browser-protocol
