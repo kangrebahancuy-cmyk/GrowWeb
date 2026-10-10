@@ -97,8 +97,8 @@ export class BrowserGateway {
         this.send(socket, { version: 1, type: "status", state: "authenticating" });
         try {
           const account = await this.auth.authenticate(msg.username, msg.password);
-          const peer = await this.createVirtualPeer(base, socket, account.username);
           sessionId = account.sessionId;
+          const peer = await this.createVirtualPeer(base, socket, account.username);
           this.sessions.set(socket, sessionId);
           this.peers.set(socket, peer);
           this.send(socket, { version: 1, type: "status", state: "authenticated" });
@@ -115,6 +115,11 @@ export class BrowserGateway {
             },
           });
         } catch (error) {
+          if (sessionId) {
+            this.auth.release(sessionId);
+            this.sessions.delete(socket);
+            sessionId = undefined;
+          }
           const code = error instanceof Error ? error.message : "invalid_credentials";
           const safe = ["invalid_credentials", "account_in_use_by_native_client", "account_already_in_use"].includes(code) ? code : "authentication_failed";
           this.fail(socket, safe, safe === "account_in_use_by_native_client" ? "Account is active in the native client." : "Unable to authenticate this account.");
