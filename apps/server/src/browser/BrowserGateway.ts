@@ -22,7 +22,7 @@ export class BrowserGateway {
       path:              "/browser",
       maxPayload:        16 * 1024,
       perMessageDeflate: false,
-      verifyClient: (info, done) => {
+      verifyClient:      (info, done) => {
         if (!info.origin && process.env.BROWSER_ALLOW_NO_ORIGIN !== "true") return done(false, 403, "Origin required");
         if (info.origin && !origins.includes(info.origin)) return done(false, 403, "Origin not allowed");
         if (this.server.clients.size >= 100) return done(false, 503, "Gateway at capacity");
