@@ -5,7 +5,7 @@ This package defines a versioned JSON envelope shared by the future browser clie
 ## Current scope
 
 - Protocol version 1 client/server message types.
-- Validation for message size, chat length, input sequence, direction, tile coordinates, and interaction fields.
+- Validation for message size, login credential shape, chat length, input sequence, direction, tile coordinates, and interaction fields.
 - No browser simulation, no ENet emulation, and no claim of a working game gateway.
 
 ## Required integration work
@@ -16,6 +16,7 @@ The gateway must bind each WebSocket to a real authenticated GrowServer player/s
 
 ```json
 {"version":1,"type":"hello","client":"growserver-web"}
+{"version":1,"type":"login","username":"example","password":"<password>"}
 {"version":1,"type":"input","sequence":1,"direction":"right","jump":false}
 {"version":1,"type":"interact","sequence":2,"x":12,"y":8,"interaction":"punch"}
 {"version":1,"type":"chat","text":"Hello"}
