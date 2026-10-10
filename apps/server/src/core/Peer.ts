@@ -6,6 +6,7 @@ import {
   Variant,
   VariantOptions,
 } from "growtopia.js";
+import { BrowserPeerTransportRegistry } from "../browser/BrowserPeerTransportRegistry";
 
 import { ItemDefinition } from "grow-items";
 import { Base } from "./Base";
@@ -378,6 +379,33 @@ export class Peer extends OldPeer<PeerData> {
       }
     }
     return 0; // default punch
+  }
+
+  public override send(...data: Parameters<OldPeer<PeerData>["send"]>) {
+    if (BrowserPeerTransportRegistry.has(this.data.netID)) {
+      for (const packet of data) {
+        let parsed: unknown = packet;
+        if (!Buffer.isBuffer(packet)) {
+          parsed = (packet as { parse: () => unknown }).parse();
+          if (parsed && typeof parsed === "object" && "parse" in parsed &&
+            typeof (parsed as { parse?: unknown }).parse === "function") {
+            parsed = (parsed as { parse: () => unknown }).parse();
+          }
+        }
+        if (Buffer.isBuffer(parsed)) {
+          BrowserPeerTransportRegistry.send(this.data.netID, parsed);
+        }
+      }
+      return;
+    }
+    return super.send(...data);
+  }
+
+  public override disconnect(type: "now" | "later" | "normal" = "later") {
+    if (BrowserPeerTransportRegistry.disconnect(this.data.netID, 1000, "GrowServer peer disconnected")) {
+      return;
+    }
+    return super.disconnect(type);
   }
 
   constructor(base: Base, netID: number, channelID = 0) {
