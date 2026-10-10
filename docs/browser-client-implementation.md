@@ -124,3 +124,29 @@ pnpm --filter server test:browser-protocol
 The GitHub Actions workflow is `.github/workflows/browser-protocol.yml`. It was corrected to use the pnpm version already declared by the repository. The tests and build still need a passing CI result before they can be considered verified.
 
 **Still not complete:** the authenticator is not wired to a WebSocket endpoint; the in-memory lease does not coordinate with other server processes or survive restarts; browser sessions are not native game peers; no world snapshot, movement, interaction, chat relay, renderer, or full Windows end-to-end test exists. In particular, do not expose this authenticator to the network until the WebSocket gateway adds origin checks, rate limiting, connection limits, and safe disconnect cleanup.
+
+## Verified transport boundary — stage 1–3 audit (2026-10-10)
+
+The existing growtopia.js implementation was inspected directly at its public Rust/N-API source (StileDevs/growtopia.js, src/host.rs, src/peer.rs) and against this repository's Base, ConnectListener, RawListener, and Peer classes.
+
+Findings:
+
+- Base owns a growtopia.js ENet Client. Native player creation starts from the library's ENet connect event and a real netID.
+- Peer calls super(base.server, netID, channelID). It wraps a peer already known to the ENet host; it does not create one.
+- The library host API exposes operations such as connect, get_peer, send, and disconnect methods. Its public API does not expose a supported way to register a virtual inbound peer backed by a WebSocket.
+- RawListener receives native ENet packet bytes associated with that real netID. A browser WebSocket is a different transport and cannot trigger that lifecycle merely by forwarding bytes.
+
+Therefore it would be unsafe and misleading to write a gateway that invents a netID, constructs Peer directly, or claims that an authenticated browser account is in a real world. The authenticator is useful, but it is not a game session.
+
+### Required engineering decision for stage 3
+
+A real implementation needs one of these designs:
+
+1. Extend/fork growtopia.js with a supported virtual-peer/transport adapter so the server can create a server-owned peer whose inbound/outbound messages are carried over WebSocket; or
+2. Refactor the game logic away from the ENet-bound Peer class into transport-neutral player/session operations, then implement a separate browser session that invokes the same validated world/action services.
+
+Option 1 preserves the existing packet/action lifecycle more directly but requires a native library change and tests on Windows. Option 2 is a larger application refactor and must avoid duplicating permission, cooldown, inventory, and persistence rules. A raw WebSocket-to-ENet byte pipe is not sufficient because the native login flow can redirect clients to a configured game port and expects a real ENet connection.
+
+### CI follow-up
+
+The browser protocol/authentication tests have passed in GitHub Actions on commit 56f8f78c337d3f3b0b48a9d2b75138b6f0a18d86. The full repository build was still failing at that point due to workspace/script issues plus TypeScript/lint problems around the new tests; those build issues are being addressed separately. No Windows end-to-end test has been performed.
