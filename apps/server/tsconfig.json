@@ -22,6 +22,6 @@
     "types": ["@types/bun", "node"],
     "rootDir": "."
   },
-  "exclude": ["node_modules", "./node_modules", "./node_modules/**/*"],
+  "exclude": ["node_modules", "./node_modules", "./node_modules/**/*", "scripts/browser-*.test.ts"],
   "include": ["src/**/*", "src/types/**/*", "scripts/**/*", "drizzle.config.ts"]
 }
