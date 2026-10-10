@@ -15,6 +15,7 @@ export type BrowserClientMessage =
   | { version: 1; type: "hello"; client: "growserver-web"; }
   | { version: 1; type: "login"; username: string; password: string; }
   | { version: 1; type: "ping"; nonce: string; }
+  | { version: 1; type: "world"; name: string; }
   | { version: 1; type: "chat"; text: string; }
   | {
       version: 1;
@@ -108,6 +109,13 @@ export function parseBrowserClientMessage(input: unknown): ValidationResult {
         return { ok: false, reason: "invalid_nonce" };
       }
       return { ok: true, message: { version: 1, type: "ping", nonce: value.nonce } };
+
+    case "world": {
+      if (typeof value.name !== "string" || !/^[a-zA-Z0-9]{1,24}$/.test(value.name)) {
+        return { ok: false, reason: "invalid_world_name" };
+      }
+      return { ok: true, message: { version: 1, type: "world", name: value.name.toUpperCase() } };
+    }
 
     case "chat":
       if (typeof value.text !== "string" || value.text.trim().length === 0 || value.text.length > MAX_CHAT_LENGTH) {
