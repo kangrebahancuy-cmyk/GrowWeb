@@ -34,6 +34,7 @@ import { ITEMS_DAT_FETCH_URL } from "@growserver/const";
 import { ItemsDat, ItemsDatMeta } from "grow-items";
 import { config as configServer } from "@growserver/config";
 import logger from "@growserver/logger";
+import { BrowserGateway } from "../browser/BrowserGateway";
 
 __dirname = process.cwd();
 
@@ -45,6 +46,7 @@ export class Base {
   public cdn: CDNContent;
   public cache: Cache;
   public database: Database;
+  private browserGateway?: BrowserGateway;
 
   constructor() {
     this.server = new Client({
@@ -119,6 +121,7 @@ export class Base {
 
       await this.loadItems();
       await this.loadEvents();
+      this.browserGateway = new BrowserGateway(this);
     } catch (err) {
       logger.error(`Failed to start server: ${err}`);
       process.exit(1);
@@ -399,6 +402,7 @@ export class Base {
 
   public async shutdown() {
     logger.info("Shutting down server...");
+    await this.browserGateway?.close().catch((error) => logger.error(`Failed to close browser gateway: ${error}`));
     await this.saveAll(true);
     process.exit(0);
   }
