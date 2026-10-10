@@ -9,9 +9,11 @@
 export const BROWSER_PROTOCOL_VERSION = 1 as const;
 export const MAX_BROWSER_MESSAGE_BYTES = 16 * 1024;
 export const MAX_CHAT_LENGTH = 160;
+export const MAX_LOGIN_FIELD_LENGTH = 64;
 
 export type BrowserClientMessage =
   | { version: 1; type: "hello"; client: "growserver-web"; }
+  | { version: 1; type: "login"; username: string; password: string; }
   | { version: 1; type: "ping"; nonce: string; }
   | { version: 1; type: "chat"; text: string; }
   | {
@@ -78,6 +80,28 @@ export function parseBrowserClientMessage(input: unknown): ValidationResult {
     case "hello":
       if (value.client !== "growserver-web") return { ok: false, reason: "invalid_client" };
       return { ok: true, message: { version: 1, type: "hello", client: "growserver-web" } };
+
+    case "login": {
+      if (
+        typeof value.username !== "string" ||
+        value.username.trim().length < 3 ||
+        value.username.trim().length > MAX_LOGIN_FIELD_LENGTH ||
+        typeof value.password !== "string" ||
+        value.password.length < 1 ||
+        value.password.length > MAX_LOGIN_FIELD_LENGTH
+      ) {
+        return { ok: false, reason: "invalid_credentials_shape" };
+      }
+      return {
+        ok: true,
+        message: {
+          version: 1,
+          type: "login",
+          username: value.username.trim(),
+          password: value.password,
+        },
+      };
+    }
 
     case "ping":
       if (typeof value.nonce !== "string" || value.nonce.length < 1 || value.nonce.length > 64) {
