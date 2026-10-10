@@ -1,7 +1,13 @@
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
-import { BrowserSessionRegistry } from "../../../packages/browser-protocol/src/session-registry";
 import type { Base } from "../core/Base";
+
+interface BrowserSessionLeaseRegistry {
+  claim(accountKey: string, sessionId: string):
+    | { ok: true; accountKey: string; sessionId: string }
+    | { ok: false; reason: "account_already_in_use" | "invalid_claim" };
+  release(sessionId: string): boolean;
+}
 
 export interface BrowserAuthenticatedAccount {
   readonly sessionId: string;
@@ -21,7 +27,7 @@ export interface BrowserAuthenticatedAccount {
 export class BrowserAccountAuthenticator {
   constructor(
     private readonly base: Base,
-    private readonly registry: BrowserSessionRegistry,
+    private readonly registry: BrowserSessionLeaseRegistry,
   ) {}
 
   async authenticate(
