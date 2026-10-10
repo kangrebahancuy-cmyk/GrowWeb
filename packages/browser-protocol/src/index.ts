@@ -35,7 +35,7 @@ export type BrowserClientMessage =
 
 export type BrowserServerMessage =
   | { version: 1; type: "hello"; protocol: 1; }
-  | { version: 1; type: "status"; state: "connected" | "authenticating" | "in-world" | "disconnected"; }
+  | { version: 1; type: "status"; state: "connected" | "authenticating" | "authenticated" | "in-world" | "disconnected"; }
   | { version: 1; type: "error"; code: string; message: string; }
   | { version: 1; type: "pong"; nonce: string; }
   | { version: 1; type: "event"; name: string; payload: Record<string, unknown>; };
