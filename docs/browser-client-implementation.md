@@ -42,3 +42,24 @@ Make the existing GrowServer game playable from a modern web browser for local W
 ## Local development target
 
 Use the repository's existing workspace and server setup instructions first. The first meaningful end-to-end acceptance test is: start the original server locally, open the browser client, authenticate a test account, enter an existing world, and observe server-authoritative player/world updates. A decorative client page or an isolated simulation does not satisfy this target.
+
+## Source inspection: login and transport constraints
+
+The following details were verified from the current source:
+
+- `packages/config/config.toml` currently sets `[web].address = "127.0.0.1"`, `[web].ports = [17091]`, and `[web].loginUrl = "login.growserver.app:8080"`.
+- `apps/server/src/core/Base.ts` creates a `growtopia.js` `Client` configured as an ENet server and starts listening on its ENet port.
+- `apps/server/src/events/Raw.ts` reads the first four bytes as a packet type, then dispatches STR/ACTION and TANK payloads to the existing handlers.
+- `apps/server/src/network/Text.ts` handles both the login token and refresh-token path. The login-token path chooses a configured game port and emits `OnSendToServer` with the server address, port, player ID, and a generated token. The refresh-token path initializes the actual `PeerData`, loads the player inventory/clothing and saves the player to cache/database.
+- `apps/server/src/network/Action.ts` routes parsed actions through `ActionMap`; `apps/server/src/network/Tank.ts` routes tank packets through `TankMap`.
+
+### Consequence for a browser implementation
+
+A raw WebSocket-to-ENet byte pipe is not enough to make this work. The login flow redirects the client to a selected game port, and the current handlers assume a real `growtopia.js` ENet peer. A browser adapter must preserve the authentication and player lifecycle while routing input through the existing action/tank handlers. It must not construct a fake `Peer` with a guessed network ID or bypass the server's player state.
+
+Before coding the gateway, the next technical task is to inspect the exact `growtopia.js@2.1.7` client/server raw-event and send APIs, then define how a browser session maps to a real ENet peer across the login-to-game handoff. Only after that contract is known should an optional gateway package be added.
+
+### Current status
+
+This is source-analysis progress only. No browser transport, browser renderer, or end-to-end browser login has been implemented or tested yet.
+
