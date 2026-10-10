@@ -2,6 +2,7 @@ import { BrowserSessionRegistry, parseBrowserClientMessage, serializeBrowserServ
 import { WebSocket, WebSocketServer } from "ws";
 import type { Base } from "../core/Base";
 import { BrowserAccountAuthenticator } from "./AccountAuthenticator";
+import { getBrowserWorldSnapshot } from "./BrowserWorldSnapshot";
 import logger from "@growserver/logger";
 
 export class BrowserGateway {
@@ -41,9 +42,26 @@ export class BrowserGateway {
         const msg = parsed.message;
         if (msg.type === "ping") return this.send(socket, { version: 1, type: "pong", nonce: msg.nonce });
         if (msg.type === "hello") return this.send(socket, { version: 1, type: "hello", protocol: 1 });
+        if (msg.type === "world") {
+          if (!sessionId) return this.fail(socket, "authentication_required", "Log in before requesting a world.");
+          try {
+            const snapshot = await getBrowserWorldSnapshot(base, msg.name);
+            if (!snapshot) return this.fail(socket, "world_not_found_or_invalid", "That world does not exist or its map data is invalid.");
+            this.send(socket, {
+              version: 1,
+              type: "event",
+              name: "world-snapshot",
+              payload: { snapshot },
+            });
+          } catch (error) {
+            logger.warn(`Browser world snapshot failed: ${error instanceof Error ? error.message : String(error)}`);
+            this.fail(socket, "world_snapshot_failed", "Unable to read that world right now.");
+          }
+          return;
+        }
         if (msg.type !== "login") {
           return this.fail(socket, sessionId ? "game_session_unavailable" : "authentication_required",
-            sessionId ? "Account is verified, but no real browser game session is attached yet." : "Log in first.");
+            sessionId ? "Account is authenticated, but movement/chat/actions require the real browser player-session adapter." : "Log in first.");
         }
         if (sessionId) return this.fail(socket, "already_authenticated", "This connection is already authenticated.");
         const now = Date.now();
@@ -71,7 +89,7 @@ export class BrowserGateway {
               level:       account.level,
             },
           });
-          this.fail(socket, "game_session_unavailable", "Credentials verified. Browser gameplay is blocked until a real GrowServer player-session adapter is available.");
+          // Account authentication is complete. The browser may request read-only snapshots of existing worlds; gameplay actions remain disabled until a real session adapter exists.
         } catch (error) {
           const code = error instanceof Error ? error.message : "invalid_credentials";
           const safe = ["invalid_credentials", "account_in_use_by_native_client", "account_already_in_use"].includes(code) ? code : "authentication_failed";
