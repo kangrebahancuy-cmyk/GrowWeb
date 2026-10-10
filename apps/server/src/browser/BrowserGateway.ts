@@ -60,9 +60,17 @@ export class BrowserGateway {
           sessionId = account.sessionId;
           this.sessions.set(socket, sessionId);
           this.send(socket, { version: 1, type: "status", state: "authenticated" });
-          this.send(socket, { version: 1, type: "event", name: "account-authenticated", payload: {
-            accountId: account.accountId, username: account.username, displayName: account.displayName, level: account.level,
-          } });
+          this.send(socket, {
+            version: 1,
+            type:    "event",
+            name:    "account-authenticated",
+            payload: {
+              accountId:   account.accountId,
+              username:    account.username,
+              displayName: account.displayName,
+              level:       account.level,
+            },
+          });
           this.fail(socket, "game_session_unavailable", "Credentials verified. Browser gameplay is blocked until a real GrowServer player-session adapter is available.");
         } catch (error) {
           const code = error instanceof Error ? error.message : "invalid_credentials";
