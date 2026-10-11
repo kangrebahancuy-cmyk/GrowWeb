@@ -100,15 +100,44 @@ export class BrowserGateway {
           this.inputSequences.set(socket, msg.sequence);
           const widthPx = world.data.width * 32;
           const heightPx = world.data.height * 32;
+          const currentX = Math.max(0, Math.min(widthPx - 16, peer.data.x ?? 0));
+          const currentY = Math.max(0, Math.min(heightPx - 32, peer.data.y ?? 0));
           const step = msg.direction === "left" ? -8 : msg.direction === "right" ? 8 : 0;
-          const nextX = Math.max(0, Math.min(widthPx - 1, (peer.data.x ?? 0) + step));
-          const nextY = Math.max(0, Math.min(heightPx - 1, (peer.data.y ?? 0) - (msg.jump ? 24 : 0)));
+          let nextX = Math.max(0, Math.min(widthPx - 16, currentX + step));
+          let nextY = currentY;
+          const isSolid = (tx: number, ty: number): boolean => {
+            if (tx < 0 || ty < 0 || tx >= world.data.width || ty >= world.data.height) return true;
+            const tile = world.data.blocks[ty * world.data.width + tx];
+            // Main doors remain traversable. Other foreground tiles are treated as solid
+            // until item collision metadata is exposed through a transport-neutral API.
+            return Boolean(tile?.fg && tile.fg !== 6);
+          };
+          const centerX = Math.floor((nextX + 8) / 32);
+          const topTileY = Math.floor((currentY + 6) / 32);
+          const feetTileY = Math.floor((currentY + 30) / 32);
+          if (step !== 0 && (isSolid(centerX, topTileY) || isSolid(centerX, feetTileY))) {
+            nextX = currentX;
+          }
+          if (msg.jump) {
+            const jumpY = Math.max(0, currentY - 24);
+            if (!isSolid(Math.floor((nextX + 8) / 32), Math.floor(jumpY / 32))) nextY = jumpY;
+          } else {
+            // Lightweight server-side gravity for browser sessions. Collision metadata
+            // differs by item; this conservative fallback uses occupied foreground tiles.
+            const fallY = Math.min(heightPx - 32, currentY + 3);
+            const landingTileY = Math.floor((fallY + 31) / 32);
+            if (isSolid(Math.floor((nextX + 8) / 32), landingTileY)) {
+              nextY = Math.max(0, landingTileY * 32 - 32);
+            } else {
+              nextY = fallY;
+            }
+          }
           const tank = TankPacket.from({
             type: TankTypes.STATE,
             xPos: nextX,
             yPos: nextY,
-            xPunch: 0,
-            yPunch: 0,
+            xPunch: Math.floor(nextX / 32),
+            yPunch: Math.floor(nextY / 32),
             state: msg.direction === "left" ? 0x10 : 0,
           });
           const Handler = TankMap[TankTypes.STATE];
