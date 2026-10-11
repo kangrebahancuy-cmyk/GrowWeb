@@ -1,5 +1,8 @@
 import { BrowserSessionRegistry, parseBrowserClientMessage, serializeBrowserServerMessage } from "@growserver/browser-protocol";
 import { WebSocket, WebSocketServer } from "ws";
+import { TankPacket } from "growtopia.js";
+import { TankTypes } from "@growserver/const";
+import { TankMap } from "../network/tanks";
 import type { Base } from "../core/Base";
 import type { PeerData } from "@growserver/types";
 import { Peer } from "../core/Peer";
@@ -17,6 +20,7 @@ export class BrowserGateway {
   private readonly peers = new Map<WebSocket, Peer>();
   private nextVirtualNetID = 1_000_000;
   private readonly attempts = new Map<string, { since: number; count: number }>();
+  private readonly inputSequences = new WeakMap<WebSocket, number>();
 
   constructor(base: Base) {
     this.auth = new BrowserAccountAuthenticator(base, this.registry);
@@ -81,9 +85,69 @@ export class BrowserGateway {
           }
           return;
         }
+        if (msg.type === "input") {
+          const peer = this.peers.get(socket);
+          if (!sessionId || !peer) return this.fail(socket, "authentication_required", "Log in first.");
+          const world = peer.currentWorld();
+          if (!world || peer.data.world === "EXIT") return this.fail(socket, "not_in_world", "Enter a world first.");
+          const previousSequence = this.inputSequences.get(socket) ?? -1;
+          if (msg.sequence <= previousSequence) return this.fail(socket, "stale_input", "Input sequence must increase.");
+          this.inputSequences.set(socket, msg.sequence);
+          const widthPx = world.data.width * 32;
+          const heightPx = world.data.height * 32;
+          const step = msg.direction === "left" ? -8 : msg.direction === "right" ? 8 : 0;
+          const nextX = Math.max(0, Math.min(widthPx - 1, (peer.data.x ?? 0) + step));
+          const nextY = Math.max(0, Math.min(heightPx - 1, (peer.data.y ?? 0) - (msg.jump ? 24 : 0)));
+          const tank = TankPacket.from({
+            type: TankTypes.STATE,
+            xPos: nextX,
+            yPos: nextY,
+            xPunch: 0,
+            yPunch: 0,
+            state: msg.direction === "left" ? 0x10 : 0,
+          });
+          const Handler = TankMap[TankTypes.STATE];
+          if (!Handler) return this.fail(socket, "movement_unavailable", "Server movement handler is unavailable.");
+          await new Handler(base, peer, tank, world).execute();
+          this.send(socket, { version: 1, type: "event", name: "player-state", payload: {
+            playerId: String(peer.data.userID), displayName: peer.data.displayName,
+            x: peer.data.x ?? nextX, y: peer.data.y ?? nextY,
+            facing: peer.data.rotatedLeft ? "left" : "right",
+          }});
+          return;
+        }
+        if (msg.type === "interact") {
+          const peer = this.peers.get(socket);
+          if (!sessionId || !peer) return this.fail(socket, "authentication_required", "Log in first.");
+          const world = peer.currentWorld();
+          if (!world || peer.data.world === "EXIT") return this.fail(socket, "not_in_world", "Enter a world first.");
+          if (msg.x >= world.data.width || msg.y >= world.data.height) return this.fail(socket, "tile_out_of_bounds", "Tile is outside this world.");
+          const playerTileX = Math.floor((peer.data.x ?? 0) / 32);
+          const playerTileY = Math.floor((peer.data.y ?? 0) / 32);
+          if (Math.abs(msg.x - playerTileX) > 4 || Math.abs(msg.y - playerTileY) > 4) {
+            return this.fail(socket, "tile_out_of_reach", "That tile is too far away.");
+          }
+          if (msg.interaction === "collect") return this.fail(socket, "interaction_unavailable", "Collecting dropped items is not implemented yet.");
+          const info = msg.interaction === "punch" ? 18 : msg.itemId;
+          if (!Number.isSafeInteger(info) || !info || info <= 0) return this.fail(socket, "invalid_item_id", "Choose a valid item ID before placing.");
+          const tank = TankPacket.from({ type: TankTypes.TILE_CHANGE_REQUEST, xPunch: msg.x, yPunch: msg.y, info });
+          const Handler = TankMap[TankTypes.TILE_CHANGE_REQUEST];
+          if (!Handler) return this.fail(socket, "interaction_unavailable", "Server tile handler is unavailable.");
+          try {
+            await new Handler(base, peer, tank, world).execute();
+            await world.saveToCache();
+            await world.saveToDatabase();
+            const snapshot = await getBrowserWorldSnapshot(base, peer.data.world);
+            if (snapshot) this.send(socket, { version: 1, type: "event", name: "world-snapshot", payload: { snapshot } });
+          } catch (error) {
+            logger.warn(`Browser tile interaction failed: ${error instanceof Error ? error.message : String(error)}`);
+            this.fail(socket, "interaction_failed", "The server could not complete that tile interaction.");
+          }
+          return;
+        }
         if (msg.type !== "login") {
-          return this.fail(socket, sessionId ? "gameplay_action_unavailable" : "authentication_required",
-            sessionId ? "Movement and tile interactions remain disabled until server-authoritative validation is implemented." : "Log in first.");
+          return this.fail(socket, sessionId ? "unsupported_message" : "authentication_required",
+            sessionId ? "This message is not supported here." : "Log in first.");
         }
         if (sessionId) return this.fail(socket, "already_authenticated", "This connection is already authenticated.");
         const now = Date.now();
