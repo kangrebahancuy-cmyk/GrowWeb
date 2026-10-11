@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GrowWeb Browser Client</title>
+<style>
+:root{color-scheme:dark;--bg:#080b12;--panel:#111827;--line:#263449;--text:#e8eef8;--muted:#93a4bb;--accent:#61e5b1;--danger:#ff8a8a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#15243a 0,#080b12 55%);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 22px;border-bottom:1px solid var(--line);background:#080b12cc;position:sticky;top:0;z-index:2}
+.brand{font-weight:800;letter-spacing:.02em;font-size:18px}.brand span{color:var(--accent)}.status{color:var(--muted);font-size:12px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#64748b;margin-right:7px}.dot.on{background:var(--accent)}
+main{max-width:1200px;margin:0 auto;padding:20px;display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px}
+.panel{background:#0f1725e8;border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}.panel h2{font-size:14px;margin:0 0 12px}.field{display:grid;gap:6px;margin-bottom:10px}label{color:var(--muted);font-size:12px}input,button{font:inherit;border-radius:9px;border:1px solid var(--line);padding:10px;background:#0a101b;color:var(--text);width:100%}button{background:var(--accent);color:#07130f;border:0;font-weight:750;cursor:pointer}button.secondary{background:#172337;color:var(--text);border:1px solid var(--line)}button:disabled{opacity:.45;cursor:not-allowed}.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}.hint{font-size:12px;color:var(--muted);margin-top:12px}.notice{padding:10px;border-radius:8px;background:#192538;color:var(--muted);font-size:12px;margin-top:12px}.notice.warn{color:#ffd59a;background:#382a17}
+.game-panel{display:flex;flex-direction:column;gap:12px}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.world-title{font-weight:800}.canvas-wrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#050910;min-height:320px}canvas{display:block;width:100%;height:min(66vh,620px);min-height:320px;image-rendering:pixelated;touch-action:none}.empty{position:absolute;inset:0;display:grid;place-content:center;text-align:center;color:var(--muted);padding:20px;pointer-events:none}.empty strong{color:var(--text);font-size:16px;margin-bottom:6px}
+.chat-log{height:120px;overflow:auto;background:#080e18;border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--muted);font-size:12px;white-space:pre-wrap}.small{font-size:11px;color:var(--muted)}.debug{font-variant-numeric:tabular-nums}
+@media(max-width:800px){main{grid-template-columns:1fr;padding:12px}header{padding:12px}canvas{height:55vh;min-height:260px}}
+</style>
+</head>
+<body>
+<header><div class="brand">GROW<span>WEB</span> <span style="color:#93a4bb;font-weight:500">/ Browser Client</span></div><div class="status"><i id="dot" class="dot"></i><span id="connection">Belum terhubung</span></div></header>
+<main>
+<aside class="panel">
+<h2>Server & Akun</h2>
+<div class="field"><label for="endpoint">WebSocket gateway</label><input id="endpoint" value="ws://127.0.0.1:8081/browser" autocomplete="url"></div>
+<div class="row"><button id="connect">Hubungkan</button><button id="disconnect" class="secondary" disabled>Putus</button></div>
+<hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+<form id="loginForm">
+<div class="field"><label for="username">Username akun GrowWeb</label><input id="username" minlength="3" maxlength="64" required autocomplete="username"></div>
+<div class="field"><label for="password">Password</label><input id="password" type="password" maxlength="64" required autocomplete="current-password"></div>
+<button id="login" type="submit" disabled>Login</button>
+</form>
+<hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+<form id="worldForm">
+<div class="field"><label for="world">Nama world yang sudah ada</label><input id="world" maxlength="24" pattern="[A-Za-z0-9]+" placeholder="CONTOH" required></div>
+<button id="enterWorld" class="secondary" type="submit" disabled>Masuk world</button>
+</form>
+<div class="notice">Login memakai akun database GrowWeb yang sudah ada. Jangan gunakan password akun penting saat menguji server lokal.</div>
+<div class="notice warn">Status prototipe: gateway saat ini belum menerima gerakan atau aksi tile dari browser. Halaman ini dapat menguji koneksi, login, masuk world, dan membaca snapshot world; ini belum menjadi game penuh.</div>
+<h2 style="margin-top:18px">Log</h2><div id="log" class="chat-log" aria-live="polite"></div>
+</aside>
+<section class="panel game-panel">
+<div class="toolbar"><div><div class="world-title" id="worldTitle">Belum ada world</div><div class="small" id="worldMeta">Map server akan tampil setelah masuk world.</div></div><div class="small debug" id="playerMeta">Belum login</div></div>
+<div class="canvas-wrap"><canvas id="worldCanvas" aria-label="Peta world dari server"></canvas><div class="empty" id="empty"><strong>GrowWeb Browser</strong><span>Hubungkan ke server lokal, login, lalu masuk ke world yang sudah ada.</span></div></div>
+<div class="toolbar"><span class="small">Tile digambar berdasarkan ID dari snapshot server. Sprite resmi belum dipetakan.</span><span class="small" id="mapPosition">—</span></div>
+<h2 style="margin:4px 0 0">Chat world</h2>
+<form id="chatForm" class="row"><input id="chatInput" maxlength="160" placeholder="Pesan chat..." autocomplete="off" disabled><button id="sendChat" style="max-width:110px" disabled>Kirim</button></form>
+</section>
+</main>
+<script>
+(() => {
+ const $ = id => document.getElementById(id);
+ const state = {ws:null, authenticated:false, world:null, account:null, seq:0, camera:{x:0,y:0}, tileSize:24};
+ const canvas=$('worldCanvas'), ctx=canvas.getContext('2d');
+ function log(message){const el=$('log');el.textContent += (el.textContent?'\n':'')+new Date().toLocaleTimeString()+'  '+message;el.scrollTop=el.scrollHeight;}
+ function setStatus(text,on=false){$('connection').textContent=text;$('dot').classList.toggle('on',on);}
+ function send(obj){if(!state.ws||state.ws.readyState!==WebSocket.OPEN){log('WebSocket belum terhubung.');return false;}state.ws.send(JSON.stringify({version:1,...obj}));return true;}
+ function syncButtons(){const connected=state.ws&&state.ws.readyState===WebSocket.OPEN;$('connect').disabled=!!connected;$('disconnect').disabled=!connected;$('login').disabled=!connected||state.authenticated;$('enterWorld').disabled=!connected||!state.authenticated;$('chatInput').disabled=!connected||!state.authenticated||!state.world;$('sendChat').disabled=$('chatInput').disabled;}
+ function connect(){let url=$('endpoint').value.trim();try{new URL(url);if(!/^wss?:$/.test(new URL(url).protocol))throw Error();}catch{log('URL WebSocket tidak valid.');return;}try{const ws=new WebSocket(url);state.ws=ws;setStatus('Menghubungkan…');syncButtons();ws.onopen=()=>{setStatus('Terhubung',true);log('WebSocket tersambung.');send({type:'hello',client:'growserver-web'});syncButtons();};ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch{log('Pesan server bukan JSON.');return;}if(m.type==='status'){log('Status: '+m.state);if(m.state==='authenticated')state.authenticated=true;if(m.state==='disconnected'){state.authenticated=false;state.world=null;}syncButtons();return;}if(m.type==='error'){log('ERROR '+m.code+': '+m.message);return;}if(m.type==='pong'){log('Pong diterima.');return;}if(m.type==='event'&&m.name==='account-authenticated'){state.account=m.payload;$('playerMeta').textContent=(m.payload.displayName||m.payload.username)+' · Lv '+(m.payload.level??'?');log('Login berhasil sebagai '+(m.payload.username||'akun'));syncButtons();return;}if(m.type==='event'&&m.name==='world-snapshot'&&m.payload&&m.payload.snapshot){state.world=m.payload.snapshot;$('worldTitle').textContent=state.world.name;$('worldMeta').textContent=state.world.width+' × '+state.world.height+' tile · '+state.world.tiles.length+' tile data';$('empty').style.display='none';render();log('Snapshot world diterima: '+state.world.name);syncButtons();return;}if(m.type==='event'&&m.name==='game-packet'){log('Paket game diterima (base64); decoder paket Growtopia belum tersedia pada prototipe.');return;}log('Event: '+(m.name||m.type));};ws.onerror=()=>log('WebSocket error. Periksa server dan origin allowlist.');ws.onclose=e=>{setStatus('Terputus');state.authenticated=false;state.world=null;$('empty').style.display='grid';syncButtons();render();log('Koneksi ditutup ('+e.code+'). '+(e.reason||''));};}catch(e){log('Gagal membuka WebSocket: '+e.message);}}
+ function login(e){e.preventDefault();send({type:'login',username:$('username').value.trim(),password:$('password').value});log('Mengirim permintaan login…');}
+ function enterWorld(e){e.preventDefault();const name=$('world').value.trim();if(name)send({type:'world',name});}
+ function chat(e){e.preventDefault();const input=$('chatInput');const text=input.value.trim();if(!text)return;if(send({type:'chat',text})){log('Anda: '+text);input.value='';}}
+ function resize(){const dpr=Math.min(window.devicePixelRatio||1,2),r=canvas.getBoundingClientRect();canvas.width=Math.max(1,Math.floor(r.width*dpr));canvas.height=Math.max(1,Math.floor(r.height*dpr));ctx.setTransform(dpr,0,0,dpr,0,0);render();}
+ function colorFor(id,kind){if(!id)return kind==='bg'?'#0a1420':'#080d15';let n=(Number(id)*2654435761)>>>0;const h=n%360,s=35+(n>>>8)%25,l=25+(n>>>16)%22;return 'hsl('+h+' '+s+'% '+l+'%)';}
+ function render(){const r=canvas.getBoundingClientRect(),w=r.width,h=r.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#07101a';ctx.fillRect(0,0,w,h);if(!state.world){ctx.fillStyle='#91a4bc';ctx.font='13px system-ui';ctx.fillText('Menunggu snapshot world…',18,28);return;}const world=state.world;const ts=Math.max(3,Math.min(32,Math.floor(Math.min(w/(world.width||1),h/(world.height||1)))));state.tileSize=ts;const mapW=ts*world.width,mapH=ts*world.height;const ox=Math.floor((w-mapW)/2),oy=Math.floor((h-mapH)/2);const byIndex=new Map(world.tiles.map(t=>[t.y*world.width+t.x,t]));for(let y=0;y<world.height;y++)for(let x=0;x<world.width;x++){const t=byIndex.get(y*world.width+x);if(!t)continue;const px=ox+x*ts,py=oy+y*ts;if(t.backgroundId){ctx.fillStyle=colorFor(t.backgroundId,'bg');ctx.fillRect(px,py,ts,ts);}if(t.foregroundId){ctx.fillStyle=colorFor(t.foregroundId,'fg');ctx.fillRect(px+Math.max(1,ts*.08),py+Math.max(1,ts*.08),ts-Math.max(2,ts*.16),ts-Math.max(2,ts*.16));if(ts>=17){ctx.fillStyle='#ffffffaa';ctx.font='9px monospace';ctx.fillText(String(t.foregroundId),px+2,py+11);}}if(ts>=12){ctx.strokeStyle='#ffffff0b';ctx.strokeRect(px,py,ts,ts);}}ctx.strokeStyle='#61e5b1';ctx.lineWidth=2;ctx.strokeRect(ox,oy,mapW,mapH);for(const p of (world.players||[])){const px=ox+(Number(p.x)||0)/32*ts,py=oy+(Number(p.y)||0)/32*ts;ctx.fillStyle='#61e5b1';ctx.fillRect(px-ts*.3,py-ts*.7,ts*.6,ts*.8);ctx.fillStyle='#e8eef8';ctx.font='10px system-ui';ctx.fillText(p.displayName||'Player',px+ts*.4,py-ts*.3);} $('mapPosition').textContent='Peta '+world.width+'×'+world.height+' · zoom '+ts+'px/tile';}
+ $('connect').addEventListener('click',connect);$('disconnect').addEventListener('click',()=>state.ws?.close(1000,'Disconnected by user'));$('loginForm').addEventListener('submit',login);$('worldForm').addEventListener('submit',enterWorld);$('chatForm').addEventListener('submit',chat);window.addEventListener('resize',resize);resize();syncButtons();
+})();
+</script>
+</body>
+</html>
