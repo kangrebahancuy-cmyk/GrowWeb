@@ -109,11 +109,14 @@ export class BrowserGateway {
           const Handler = TankMap[TankTypes.STATE];
           if (!Handler) return this.fail(socket, "movement_unavailable", "Server movement handler is unavailable.");
           await new Handler(base, peer, tank, world).execute();
-          this.send(socket, { version: 1, type: "event", name: "player-state", payload: {
-            playerId: String(peer.data.userID), displayName: peer.data.displayName,
-            x: peer.data.x ?? nextX, y: peer.data.y ?? nextY,
-            facing: peer.data.rotatedLeft ? "left" : "right",
-          }});
+          for (const [targetSocket, targetPeer] of this.peers) {
+            if (targetSocket.readyState !== WebSocket.OPEN || targetPeer.data.world !== peer.data.world) continue;
+            this.send(targetSocket, { version: 1, type: "event", name: "player-state", payload: {
+              playerId: String(peer.data.userID), displayName: peer.data.displayName,
+              x: peer.data.x ?? nextX, y: peer.data.y ?? nextY,
+              facing: peer.data.rotatedLeft ? "left" : "right",
+            }});
+          }
           return;
         }
         if (msg.type === "interact") {
