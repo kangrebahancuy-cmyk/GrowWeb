@@ -21,6 +21,7 @@ export class BrowserGateway {
   private nextVirtualNetID = 1_000_000;
   private readonly attempts = new Map<string, { since: number; count: number }>();
   private readonly inputSequences = new WeakMap<WebSocket, number>();
+  private readonly inputTimes = new WeakMap<WebSocket, number>();
 
   constructor(base: Base) {
     this.auth = new BrowserAccountAuthenticator(base, this.registry);
@@ -92,6 +93,10 @@ export class BrowserGateway {
           if (!world || peer.data.world === "EXIT") return this.fail(socket, "not_in_world", "Enter a world first.");
           const previousSequence = this.inputSequences.get(socket) ?? -1;
           if (msg.sequence <= previousSequence) return this.fail(socket, "stale_input", "Input sequence must increase.");
+          const now = Date.now();
+          const lastInputAt = this.inputTimes.get(socket) ?? 0;
+          if (now - lastInputAt < 55) return this.fail(socket, "input_rate_limited", "Movement is being sent too quickly.");
+          this.inputTimes.set(socket, now);
           this.inputSequences.set(socket, msg.sequence);
           const widthPx = world.data.width * 32;
           const heightPx = world.data.height * 32;
