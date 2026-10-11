@@ -18,10 +18,10 @@ If `py` is unavailable, use an equivalent static file server bound to port 3000.
 
 ## Current limits — not yet fully playable
 
-- The map is sourced from the server's actual world snapshot, but tile colors are diagnostic placeholders; the APK's texture/sprite formats have not yet been decoded or mapped.
-- The gateway currently rejects browser movement and tile interactions until they can be validated through authoritative server game logic. Keyboard movement and punching are therefore not advertised as working.
+- The map is sourced from the server's actual world snapshot, but tile colors and player shapes are diagnostic placeholders; the APK's RTTEX texture/sprite formats have not yet been decoded or mapped.
+- Browser movement now routes through the existing GrowServer State handler, with server-side input sequencing/rate limiting and a conservative foreground-tile collision/gravity fallback. Clicking a tile invokes the existing TileChangeReq handler for punching; right-clicking invokes it for placing an item ID selected in the UI. This is an early adapter and needs end-to-end testing against real worlds: its collision fallback treats most foreground tiles as solid, jump/physics are simplified, and dropped-item collection is not implemented.
 - Native outgoing packets are currently base64 events. A Growtopia packet decoder/state adapter and sprite renderer are still needed for animation, inventory, effects, and real-time entity updates.
-- This prototype is a connection/login/world-view smoke test, not a claim that the Android APK has been converted or that full browser gameplay works.
+- This remains an experimental browser client, not a completed conversion of the Android APK. Real textures, accurate player physics, complete packet decoding, item/inventory UI, drops, effects, and full end-to-end validation are still required before calling it fully playable.
 
 ## Next implementation milestones
 
